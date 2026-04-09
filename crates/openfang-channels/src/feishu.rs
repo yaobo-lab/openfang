@@ -26,7 +26,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch, RwLock};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use url::Url;
 use zeroize::Zeroizing;
 
@@ -777,7 +777,7 @@ impl FeishuAdapter {
                                 0 => {
                                     if let Some(new_interval) = parse_pong_interval(&frame) {
                                         if new_interval > 0 {
-                                            debug!("{label} WS update ping interval to {}s", new_interval);
+                                            info!("{label} WS update ping interval to {}s", new_interval);
                                             ping_interval = tokio::time::interval(Duration::from_secs(new_interval));
                                             ping_interval.tick().await;
                                         }
@@ -787,12 +787,12 @@ impl FeishuAdapter {
                                     Self::handle_data_frame(frame, &mut write, &tx, &adapter.bot_names, &channel_name, &adapter.message_dedup, &adapter.event_dedup, &mut frame_parts).await?;
                                 }
                                 method => {
-                                    debug!("{label} WS unhandled frame method: {method}");
+                                    info!("{label} WS unhandled frame method: {method}");
                                 }
                             }
                         }
                         Some(Ok(Message::Text(text))) => {
-                            debug!("{label} WS unexpected text message: {text}");
+                            info!("{label} WS unexpected text message: {text}");
                         }
                         Some(Ok(Message::Close(frame))) => {
                             info!("{label} WebSocket closed by server: {frame:?}");
@@ -802,7 +802,7 @@ impl FeishuAdapter {
                             let _ = write.send(Message::Pong(payload)).await;
                         }
                         Some(Ok(Message::Pong(_))) => {
-                            debug!("{label} WebSocket pong");
+                            info!("{label} WebSocket pong");
                         }
                         Some(Ok(_)) => {}
                         Some(Err(e)) => return Err(format!("{label} WebSocket stream error: {e}").into()),

@@ -10,8 +10,8 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 /// Gateway source files embedded at compile time.
-const GATEWAY_INDEX_JS: &str = include_str!("../../../packages/whatsapp-gateway/index.js");
-const GATEWAY_PACKAGE_JSON: &str = include_str!("../../../packages/whatsapp-gateway/package.json");
+const GATEWAY_INDEX_JS: &str = include_str!("../../../docs/whatsapp-gateway/index.js");
+const GATEWAY_PACKAGE_JSON: &str = include_str!("../../../docs/whatsapp-gateway/package.json");
 
 /// Default port for the WhatsApp Web gateway.
 const DEFAULT_GATEWAY_PORT: u16 = 3009;

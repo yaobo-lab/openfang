@@ -2523,6 +2523,7 @@ impl OpenFangKernel {
                 sender_id,
                 sender_name,
             };
+
             manifest.model.system_prompt =
                 openfang_runtime::prompt_builder::build_system_prompt(&prompt_ctx);
             // Store canonical context separately for injection as user message

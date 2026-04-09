@@ -1,0 +1,16 @@
+{
+  "editor.formatOnSave": true,
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+    },  
+    "rust-analyzer.diagnostics.disabled": [
+      "cast-to-unsized",
+      "E0308",
+      "E0605" 
+    ], 
+    "rust-analyzer.server.extraEnv": {
+     "RA_MEMORY_LIMIT": "4096"   
+   }
+} 

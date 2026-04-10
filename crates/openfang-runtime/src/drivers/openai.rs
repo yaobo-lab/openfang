@@ -105,28 +105,61 @@ impl OpenAIDriver {
     }
 }
 
+//https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create
 #[derive(Debug, Serialize)]
 struct OaiRequest {
+    //指定要调用的模型 ID
     model: String,
+
+    //对话历史 / 消息列表，构成上下文
     messages: Vec<OaiMessage>,
-    /// Classic token limit field (used by most models).
+
+    /// 已作废
     #[serde(skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
-    /// New token limit field required by GPT-5 and o-series reasoning models.
+
+    /// 生成内容的最大 Token 数（含思考 Token） 控制响应长度与成本
     #[serde(skip_serializing_if = "Option::is_none")]
     max_completion_tokens: Option<u32>,
+
+    // 随机性 / 创造力控制
+    // 0：最确定、重复低、精准
+    // 1：平衡 默认值
+    // 2：最随机、创意高
     #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f32>,
+
+    // 定义可调用的工具（函数调用）
+    /*
+     tools 是让 GPT 调用你自定义的函数的参数，也就是官方说的 Function Calling（函数调用）
+     作用：
+        告诉模型 “你有哪些外部工具 / 函数可以用”
+        模型会根据用户问题自动判断要不要调用
+        如果需要调用，会返回你函数的名称 + 要传的参数
+        你本地执行函数后，把结果再传回模型，模型就能给出最终回答
+    */
     #[serde(skip_serializing_if = "Vec::is_empty")]
     tools: Vec<OaiTool>,
+
+    // 控制是否 / 如何调用工具
+    // "none"：不调用
+    // "auto"：自动判断
+    // "required"：必须调用
+    // {"type": "function", "function": {"name": "xxx"}}：强制调用某函数
     #[serde(skip_serializing_if = "Option::is_none")]
     tool_choice: Option<serde_json::Value>,
+
+    //是否启用流式输出（打字机效果）
+    //true：返回 Server-Sent Events（SSE）
+    //false：一次性返回完整结果
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     stream: bool,
-    /// Request usage stats in streaming responses (OpenAI extension, supported by Groq et al).
+
+    //流式时是否在末尾返回 token 使用量统计
     #[serde(skip_serializing_if = "Option::is_none")]
     stream_options: Option<serde_json::Value>,
-    /// Moonshot Kimi K2.5: disable thinking so multi-turn with tool_calls works without preserving reasoning_content.
+
+    /// 已作废
     #[serde(skip_serializing_if = "Option::is_none")]
     thinking: Option<serde_json::Value>,
 }
@@ -172,7 +205,11 @@ fn temperature_must_be_one(model: &str) -> bool {
 
 #[derive(Debug, Serialize)]
 struct OaiMessage {
+    //system：系统提示，设定 AI 行为（如 "你是一个翻译助手"）
+    //user：用户输入
+    //assistant：AI 回复（用于历史对话）
     role: String,
+    //消息内容（文本 / 多模态）
     #[serde(skip_serializing_if = "Option::is_none")]
     content: Option<OaiMessageContent>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -225,11 +262,11 @@ struct OaiFunction {
 struct OaiTool {
     #[serde(rename = "type")]
     tool_type: String,
-    function: OaiToolDef,
+    function: OaiToolDesc,
 }
 
 #[derive(Debug, Serialize)]
-struct OaiToolDef {
+struct OaiToolDesc {
     name: String,
     description: String,
     parameters: serde_json::Value,
@@ -422,7 +459,7 @@ impl LlmDriver for OpenAIDriver {
             .iter()
             .map(|t| OaiTool {
                 tool_type: "function".to_string(),
-                function: OaiToolDef {
+                function: OaiToolDesc {
                     name: t.name.clone(),
                     description: t.description.clone(),
                     parameters: openfang_types::tool::normalize_schema_for_provider(
@@ -444,6 +481,7 @@ impl LlmDriver for OpenAIDriver {
         } else {
             (Some(request.max_tokens), None)
         };
+
         let mut oai_request = OaiRequest {
             model: request.model.clone(),
             messages: oai_messages,
@@ -473,7 +511,7 @@ impl LlmDriver for OpenAIDriver {
         let max_retries = 3;
         for attempt in 0..=max_retries {
             let url = self.chat_url(&request.model);
-            debug!(url = %url, attempt, "Sending OpenAI API request");
+            tracing::info!(url = %url, attempt, "Sending OpenAI API request");
 
             let req_builder = self
                 .client
@@ -878,7 +916,7 @@ impl LlmDriver for OpenAIDriver {
             .iter()
             .map(|t| OaiTool {
                 tool_type: "function".to_string(),
-                function: OaiToolDef {
+                function: OaiToolDesc {
                     name: t.name.clone(),
                     description: t.description.clone(),
                     parameters: openfang_types::tool::normalize_schema_for_provider(
